@@ -1,0 +1,16 @@
+title = "nonebot-plugin-1password gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Explicit synthetic identifiers and credential canary values in tests"
+condition = "AND"
+paths = ['''^tests/''']
+regexes = [
+  '''^idempotency-(1|2|other)$''',
+  '''^ops[_]0123456789abcdefghijklmnop$''',
+]

@@ -1,0 +1,109 @@
+default_install_hook_types: [pre-commit, commit-msg]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: detect-private-key
+
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: "0.26"
+    hooks:
+      - id: validate-pyproject
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.47.0
+    hooks:
+      - id: typos
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.5
+    hooks:
+      - id: ruff-format
+      - id: ruff-check
+        args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.23.2
+    hooks:
+      - id: markdownlint-cli2
+        args: [--fix, --config, scripts/markdownlint-cli2.yaml]
+        files: ^(?:CHANGELOG|README|SECURITY)\.md$|^docs/.*\.md$
+
+  - repo: https://github.com/adamchainz/blacken-docs
+    rev: 1.20.0
+    hooks:
+      - id: blacken-docs
+        additional_dependencies: [black==26.3.1]
+        files: ^(?:CHANGELOG|README|SECURITY)\.md$|^docs/.*\.md$
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: 914e7df21a07ef503a81201c76d2b11c789d3fca # v1.7.12
+    hooks:
+      - id: actionlint
+        files: ^\.github/workflows/.*\.ya?ml$
+        stages: [manual]
+
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: 451b56af716f9f0d0c2b816503a3fd0cf8b036fa # v1.29.0
+    hooks:
+      - id: zizmor
+        files: ^\.github/(?:workflows/.*|actions/.*/action)\.ya?ml$
+        stages: [manual]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: c7acf33d962e8effc070072f993c365af19e3661 # v8.27.2
+    hooks:
+      - id: gitleaks
+        entry: gitleaks git --redact --verbose
+        pass_filenames: false
+        stages: [manual]
+
+  - repo: local
+    hooks:
+      - id: uv-lock
+        name: uv lock is current
+        entry: uv lock --check
+        language: system
+        pass_filenames: false
+      - id: conventional-commit
+        name: conventional commit message
+        entry: python3 scripts/check_commit_message.py
+        language: system
+        stages: [commit-msg]
+      - id: basedpyright
+        name: BasedPyright
+        entry: uv run basedpyright
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: basedpyright-verifytypes
+        name: Public type completeness
+        entry: uv run basedpyright --verifytypes nonebot_plugin_1password --ignoreexternal
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: ty
+        name: ty
+        entry: uv run ty check src tests
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: pytest
+        name: pytest
+        entry: uv run pytest
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: zensical-build
+        name: Zensical strict build
+        entry: uv run zensical build --strict
+        language: system
+        pass_filenames: false
+        stages: [manual]
