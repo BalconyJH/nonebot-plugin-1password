@@ -2,8 +2,6 @@
 
 `nonebot-plugin-1password` provides a complete 1Password SecretOps workflow for NoneBot2: a safe Catalog, requests, approvals, fixed Action Providers, and a Remote Broker that isolates Secrets in a separate process.
 
-`0.1.0` is the initial release and includes all functionality and infrastructure described in this documentation.
-
 ## Implemented capabilities
 
 - Alconna and UniMessage commands with Uninfo principal normalization and no dependency on a concrete Adapter.

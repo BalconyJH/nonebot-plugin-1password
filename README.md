@@ -4,8 +4,6 @@ An adapter-agnostic 1Password SecretOps workflow for NoneBot2. The plugin provid
 
 The distribution and repository are named `nonebot-plugin-1password`; the Python import name is `nonebot_plugin_1password`.
 
-`0.1.0` is the initial release, including all existing functionality, security work, dependency updates, and release infrastructure.
-
 ## Security Architecture
 
 The default execution mode is `broker`:

@@ -1,7 +1,6 @@
 # Changelog Fragments
 
-All development work preceding `0.1.0` is included in the initial release notes.
-Add fragments here for subsequent user-visible changes, using English prose.
+Add fragments here for user-visible changes, using English prose.
 
 Supported suffixes are `.feature.md`, `.bugfix.md`, and `.doc.md`. Use an issue
 number as the filename prefix, or let Towncrier generate an anonymous identifier:

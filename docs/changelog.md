@@ -1,13 +1,11 @@
 # Changelog
 
-This page mirrors the release notes in the root `CHANGELOG.md`. Future user-visible
-changes are maintained as Towncrier fragments under `changes/`; all pre-release
-development work is included in the initial release.
+This page mirrors the release notes in the root `CHANGELOG.md`. User-visible
+changes are maintained as Towncrier fragments under `changes/`.
 
 ## 0.1.0 - 2026-09-04
 
-Initial release. All functionality, security work, dependency updates, and project
-infrastructure developed before this release are included in this version.
+Initial release.
 
 ### Added
 

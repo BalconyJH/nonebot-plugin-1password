@@ -59,21 +59,6 @@ must not dump process environments or put real credentials in logs or artifacts.
 
 ## Production Releases
 
-### Initial Release: 0.1.0
-
-All existing development work belongs to `0.1.0`. Other version numbers in earlier
-commits were unpublished development markers, not previous releases. Preserve
-the granular commit history.
-
-Auto Tag rejects the version decrease used to establish this baseline; its recovery
-entry point does not bypass that protection. For the initial release, complete
-remote setup and all four required checks, then have a maintainer create and push
-`v0.1.0` at the validated commit. The existing Publish tag entry point still checks
-source ancestry, version consistency, tests, and artifacts. Subsequent versions
-follow the normal increasing-version workflow below.
-
-### Subsequent Releases
-
 1. Review the public API, the three NoneBot TOML schemas, Broker configuration and
    protocol, and migration documentation.
 2. Confirm Secret isolation, mTLS, reconciliation, and restart tests pass.
@@ -90,6 +75,11 @@ follow the normal increasing-version workflow below.
 6. Auto Tag verifies the latest successful push run of each workflow for that exact
    SHA, compares the project version with its first parent, creates `vX.Y.Z`, and
    dispatches Publish. Unchanged versions and root commits do not produce automatic tags.
+
+When automatic tagging is not applicable, a maintainer can create and push a
+version-matching tag at a validated default-branch commit after completing remote
+setup and all required checks. Publish applies the same source, version, and
+artifact validation to manually created tags.
 
 Only canonical `X.Y.Z` versions are supported by automatic tagging. Downgrades,
 pre-releases, and local version segments are rejected. Existing tags must already

@@ -8,8 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [0.1.0] - 2026-09-04
 
-Initial release. All functionality, security work, dependency updates, and project
-infrastructure developed before this release are included in this version.
+Initial release.
 
 ### Added
 
