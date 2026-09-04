@@ -51,6 +51,8 @@ NoneBot requests, votes, execution attempts, typed audit records, and the notifi
 
 For `submit`, the Broker uses client-scoped idempotency and a nonce table. The queued-to-running transition is committed before invoking the Provider, and the terminal result is committed afterward. SQLite initialization marks jobs left running by a crash as interrupted. Audit facts and ordered outlet leases are persisted in the same database as job transitions.
 
+The Broker store is single-instance, not an HA coordination mechanism. Opening a second store against a live database also invokes restart recovery. Deployments must stop the old Broker before starting a replacement against those files; multiple live owners would require an owner-lease design that is not implemented.
+
 ## Adapter Neutrality
 
 The business layer does not import Adapter types such as OneBot, Discord, or QQ. Uninfo provides stable principals, UniMessage sends text, and MessageGateway delivers to targets identified by scope, self, and scene; `supported_adapters` is inherited from Alconna.

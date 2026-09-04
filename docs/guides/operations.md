@@ -25,6 +25,8 @@ Catalog commands and `/op health` can continue to provide safe information while
 
 Broker health checks the WAL, circuit, and lifecycle-owned worker state. If an execution or audit worker exits unexpectedly, it returns the closed `worker_unavailable` status and rejects new business RPCs. Protocol, store, or transition errors escaping the execution worker are fatal: a claim may already have occurred, so the Broker does not retry blindly at an unknown persistence stage. Health discloses no worker names, paths, topology, clients, Providers, Vaults or Items, certificates, or exception text. After a worker failure, the standalone Broker process closes its listener and exits nonzero so that the process supervisor can restart it according to deployment policy.
 
+Health is not a complete workflow-readiness check: it does not separately report Policy or Route loading. If startup did not install the workflow, a later successful Backend probe does not install it. Correct the startup failure and restart NoneBot after the Broker is ready. A worker failure also requires a restart; merely repeating `/op health` does not recreate services.
+
 ## Worker semantics
 
 - Expiration: conditionally update overdue pending requests and write their audit and notification records in the same transaction.
@@ -44,6 +46,12 @@ First add a second `[[clients]]` registration for the new certificate while reta
 
 ## Configuration changes
 
-There is currently no in-conversation reload. Run strict loading tests and the complete `make check` before performing a rolling restart. The ID, version, and Provider of the NoneBot public Policy and Broker Policy must match. A changed binding fingerprint causes existing unexecuted requests to fail closed, requiring a new request.
+Both processes retain startup snapshots; editing files does not reload Catalogs, Policies, routes, Providers, or certificates. Validate candidate documents offline before deployment. Run `make check` when changing the deployment's code or dependency set; the repository tests do not validate your private configuration files.
+
+The Broker supports exactly one live process per database and audit outlet. Do not use overlapping rolling restarts or multiple replicas against the same files: opening the store marks every running job `execution_interrupted`, even if another process is still executing it. Separate databases do not provide shared idempotency or reconciliation and are not interchangeable replicas.
+
+For a planned update, stop new request admission, reconcile outstanding executions, stop NoneBot workers, and fully stop the old Broker before starting its replacement. Preserve the database and audit files. Start the Broker first, then start NoneBot so it obtains grants from the new snapshot. Verify both health and workflow availability before resuming requests. Investigate interrupted executions against downstream state before issuing a new request; interruption does not prove that no side effect occurred.
+
+Keep the full Policy documents consistent across both processes and increment `policy_version` when changing a Policy's meaning. Changed grant coordinates or a changed binding fingerprint make existing unexecuted requests fail closed, requiring a new request. Grant checks compare loaded snapshots, not files modified on disk.
 
 See [Incident Response](../security/incident-response.md) for handling exceptional conditions.

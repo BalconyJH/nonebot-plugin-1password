@@ -1,6 +1,6 @@
 # nonebot-plugin-1password
 
-An adapter-agnostic 1Password SecretOps workflow for NoneBot2. The plugin provides safe Catalog browsing, requests, approvals, a durable state machine, fixed Action Providers, and a production-ready mTLS Remote Broker. It never delivers passwords, OTPs, private keys, tokens, share links, or Secret references to chat.
+An adapter-agnostic 1Password SecretOps workflow for NoneBot2. The plugin provides safe Catalog browsing, requests, approvals, a durable state machine, fixed Action Providers, and a standalone mTLS Remote Broker. It never delivers passwords, OTPs, private keys, tokens, share links, or Secret references to chat.
 
 The distribution and repository are named `nonebot-plugin-1password`; the Python import name is `nonebot_plugin_1password`.
 

@@ -27,6 +27,6 @@ A Catalog must not store Secret values, tokens, OTPs, private keys, share URLs, 
 
 ## Loading semantics
 
-The current lifecycle loads one immutable snapshot at startup and provides no in-conversation reload command. It fails closed for a missing document, unknown fields, duplicate aliases, an incorrect version, or an invalid Reference. After changing a document, run tests offline before performing a rolling restart appropriate to the deployment platform.
+The current lifecycle loads one immutable snapshot at startup and provides no in-conversation reload command. It fails closed for a missing document, unknown fields, duplicate aliases, an incorrect version, or an invalid Reference. Validate changed documents offline and follow the [controlled restart procedure](operations.md#configuration-changes). Broker processes must never overlap against the same database.
 
 See [Catalog Schema](../reference/catalog-schema.md) for the complete format.
