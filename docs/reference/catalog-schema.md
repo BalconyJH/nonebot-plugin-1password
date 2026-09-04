@@ -37,6 +37,6 @@ allowed_groups = ["sre"]
 credential = "op://Operations/Grafana/credential"
 ```
 
-The private schema requires a `secret_references` mapping. Each value must be a canonical `op://` reference with three or four nonempty, whitespace-trimmed segments after the scheme. Provider `secret_names` consume the mapping keys.
+The private schema requires a `secret_references` mapping. Each value must be a canonical `op://` reference with three or four nonempty, whitespace-trimmed segments after the scheme. The mapping may contain names for multiple Providers. Each binding selects exactly its Provider's `secret_names`; every required name must exist. An empty mapping is valid when no bound Provider requires a Secret.
 
 The Catalog registers resources only. A separate Policy document defines Action coordinates and Provider bindings.

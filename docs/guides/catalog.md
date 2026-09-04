@@ -21,7 +21,7 @@ Unknown and invisible aliases produce the same result. Visibility does not imply
 
 ## Secret Reference
 
-A Reference in the private Catalog must be a three- or four-segment `op://` path, and each key must correspond exactly to a name in the Provider's `ActionDefinition.secret_names`. Binding construction selects only keys declared by the Provider, so extra fields are never passed to it. Missing fields, an unknown Provider, or an unmatched resource make the entire execution boundary unavailable.
+A Reference in the private Catalog must be a three- or four-segment `op://` path. A resource's mapping must contain every name required by each Provider bound to that resource; it may also contain names needed by other Providers. Binding construction selects exactly the current Provider's `ActionDefinition.secret_names`, so unrelated entries are never passed to it. For an executable Policy, missing required names, an unknown Provider, or an unmatched resource make the entire execution boundary unavailable. A `deny` Policy creates no binding.
 
 A Catalog must not store Secret values, tokens, OTPs, private keys, share URLs, HTTP headers, arbitrary URLs, or command templates.
 

@@ -29,7 +29,7 @@ The private Broker Catalog may store `op://` references, but it must not store r
 ## Provider review
 
 - Import only `nonebot_plugin_1password.api`.
-- Match `secret_names` exactly to the private Catalog.
+- Ensure the private Catalog contains every declared `secret_name`; the executor passes only the selected Provider's names.
 - Never record Secrets, lengths, hashes, response bodies, or headers.
 - Use `context.idempotency_key` or genuinely read-only semantics.
 - Fix the network origin, method, and SDK operation, and set the shortest practical timeout.
