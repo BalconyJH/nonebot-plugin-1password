@@ -13,12 +13,16 @@ An Action Provider is a fixed capability registered by an administrator in trust
 - `READ_ONLY` or `DOWNSTREAM_KEY` idempotency semantics.
 - A non-empty, safe set of `result_codes`.
 
-`FixedHttpTarget` accepts only a canonical HTTPS origin without a path, query, fragment, credentials, or templates, together with an explicit set of `HttpMethod` values. The library does not provide a generic HTTP or Shell Provider.
+`FixedHttpTarget` accepts only a canonical HTTPS origin without a path, query, fragment, credentials, or templates, together with an explicit set of `HttpMethod` values. The library does not provide a generic HTTP or Shell Provider. Target and idempotency declarations are contracts for trusted Provider code, not a sandbox or an automatic network client. Provider implementations must enforce the declared destination and downstream idempotency behavior themselves.
 
 ## Minimal implementation
 
+This pattern belongs in a deployment-owned module, such as `deployment.providers`. The imported `deployment.grafana.rotate_with_idempotency_key` is an application-specific async helper you must implement and ship; it is not supplied by this package. It must use a fixed target, honor the idempotency key, and keep credentials and downstream responses out of logs and results.
+
 ```python
 from collections.abc import Mapping
+
+from deployment.grafana import rotate_with_idempotency_key
 
 from nonebot_plugin_1password.api import (
     ActionContext,
@@ -62,10 +66,10 @@ register_action_provider(GrafanaRotation())
 
 ## Grants and TOCTOU
 
-The fingerprint of a private binding is the canonical SHA-256 digest of the resource/action coordinate and the exact Secret References. A request stores the Policy ID and version, Provider, and fingerprint. Before execution, both the Local executor and the Broker revalidate the complete grant against the current Policy and binding. Configuration drift produces `action_unavailable` or `authorization_stale` instead of continuing with old references.
+The fingerprint of a private binding is the canonical SHA-256 digest of the resource/action coordinate and the exact Secret References. It does not cover Provider source code or resolved Secret values. A request stores the Policy ID and version, Provider, and fingerprint. Before execution, both the Local executor and the Broker revalidate the complete grant against their loaded Policy and binding snapshots. Grant drift produces `action_unavailable` or `authorization_stale` instead of continuing with old references. Changes on disk require a [controlled restart](operations.md#configuration-changes) before they become current.
 
 ## Local and Remote execution
 
-The Local executor resolves declared Secrets after claiming an execution attempt and never retries the Provider automatically. The Remote executor submits a short-lived mTLS request and polls by execution ID. When the connection outcome is ambiguous, NoneBot keeps the attempt running and lets `RecoveryWorker` continue pull/reconcile. It submits again with the same idempotent identity only when the Broker explicitly reports that the job does not exist.
+The Local executor resolves declared Secrets after claiming an execution attempt and never retries the Provider automatically. The Remote executor submits a short-lived mTLS request and polls by execution ID. When the connection outcome is ambiguous, NoneBot keeps the attempt running and lets `ExecutionRecoveryWorker` continue pull/reconcile. It submits again with the same idempotent identity only when the Broker explicitly reports that the job does not exist.
 
 After a Broker restart, jobs that were running when that Broker crashed are marked `execution_interrupted`; the Provider is not invoked a second time.
