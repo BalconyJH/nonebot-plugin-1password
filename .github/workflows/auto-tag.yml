@@ -1,0 +1,191 @@
+name: Auto Tag
+
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] Read-only gate checks exact default-branch push runs before the write job can checkout or create a tag.
+    workflows: [CI, Coverage, Prek, Docs]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact current default-branch SHA to recover before tagging.
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: auto-tag-${{ github.event.workflow_run.head_sha || inputs.source_sha }}
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Gate exact source commit
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.id == github.event.repository.id &&
+       github.event.workflow_run.head_branch == github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      ready: ${{ steps.gate.outputs.ready }}
+      sha: ${{ steps.gate.outputs.sha }}
+    steps:
+      - name: Require every trusted push check
+        id: gate
+        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha || inputs.source_sha }}
+        with:
+          script: |
+            core.setOutput("ready", "false");
+            const sha = process.env.SOURCE_SHA;
+            const branch = context.payload.repository.default_branch;
+            const recovery = context.eventName === "workflow_dispatch";
+            if (!/^[0-9a-f]{40}$/.test(sha)) {
+              throw new Error("source_sha must be a full lowercase commit SHA.");
+            }
+            if (recovery && context.ref !== "refs/heads/" + branch) {
+              throw new Error("Recover using the default branch workflow.");
+            }
+            const { data: head } = await github.rest.repos.getBranch({
+              ...context.repo, branch,
+            });
+            if (recovery && head.commit.sha !== sha) {
+              throw new Error("Recovery must use the current default-branch SHA.");
+            }
+            const { data: comparison } = await github.rest.repos.compareCommitsWithBasehead({
+              ...context.repo, basehead: sha + "..." + head.commit.sha,
+            });
+            if (!["ahead", "identical"].includes(comparison.status)) {
+              throw new Error("Source is not an ancestor of the default branch.");
+            }
+            for (const file of ["ci.yml", "coverage.yml", "prek.yml", "docs.yml"]) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                ...context.repo, workflow_id: file, head_sha: sha,
+                event: "push", branch, per_page: 100,
+              });
+              const runs = data.workflow_runs
+                .filter(run => run.head_sha === sha && run.event === "push" &&
+                  run.head_repository?.id === context.payload.repository.id)
+                .sort((a, b) => b.run_number - a.run_number || b.run_attempt - a.run_attempt);
+              const latest = runs[0];
+              if (!latest || latest.status !== "completed" || latest.conclusion !== "success") {
+                core.notice(file + " has not succeeded for " + sha + "; no tag will be created.");
+                return;
+              }
+            }
+            core.setOutput("sha", sha);
+            core.setOutput("ready", "true");
+
+  tag:
+    name: Tag version and dispatch publication
+    needs: gate
+    if: needs.gate.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # Create an immutable tag, never move an existing tag.
+      actions: write # GITHUB_TOKEN-created tags do not trigger push workflows.
+    steps:
+      - name: Check out gated source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select a canonical increasing release version
+        id: version
+        env:
+          RECOVERY: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import subprocess
+          import tomllib
+          from pathlib import Path
+
+          current = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          parent = subprocess.run(
+              ["git", "show", "HEAD^:pyproject.toml"], capture_output=True, text=True,
+          )
+          recovery = os.environ["RECOVERY"] == "true"
+          previous = None
+          if parent.returncode == 0:
+              previous = tomllib.loads(parent.stdout)["project"]["version"]
+          if not recovery and (previous is None or current == previous):
+              print("No version change to release.")
+              raise SystemExit(0)
+          pattern = r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
+          if re.fullmatch(pattern, current) is None:
+              raise SystemExit("Release version must be canonical X.Y.Z.")
+          if previous is not None:
+              if re.fullmatch(pattern, previous) is None:
+                  raise SystemExit("Previous version must be canonical X.Y.Z.")
+              before = tuple(map(int, previous.split(".")))
+              after = tuple(map(int, current.split(".")))
+              if after < before or (after == before and not recovery):
+                  raise SystemExit("Release version must increase.")
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
+              output.write(f"tag=v{current}\n")
+          PY
+      - name: Create or verify tag and dispatch once
+        if: steps.version.outputs.tag != ''
+        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          SOURCE_SHA: ${{ needs.gate.outputs.sha }}
+        with:
+          script: |
+            const tag = process.env.RELEASE_TAG;
+            const sha = process.env.SOURCE_SHA;
+            let existing;
+            try {
+              existing = (await github.rest.git.getRef({
+                ...context.repo, ref: "tags/" + tag,
+              })).data;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            if (existing) {
+              const { data: commit } = await github.rest.repos.getCommit({
+                ...context.repo, ref: "refs/tags/" + tag,
+              });
+              if (commit.sha !== sha) {
+                throw new Error("Existing release tag points to another commit; refusing to move it.");
+              }
+            }
+            if (!existing) {
+              await github.rest.git.createRef({
+                ...context.repo, ref: "refs/tags/" + tag, sha,
+              });
+            }
+            const publishedRuns = async () => {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                ...context.repo, workflow_id: "publish.yml", head_sha: sha, per_page: 100,
+              });
+              return data.workflow_runs.filter(run =>
+                run.head_sha === sha && ["push", "workflow_dispatch"].includes(run.event));
+            };
+            if ((await publishedRuns()).length > 0) {
+              core.notice("Publish already ran for this source; use its recovery controls if needed.");
+              return;
+            }
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo, workflow_id: "publish.yml", ref: tag,
+              inputs: { release_tag: tag },
+            });
+            for (let attempt = 0; attempt < 10; attempt++) {
+              if ((await publishedRuns()).length > 0) {
+                core.notice("Dispatched Publish for " + tag + " at " + sha);
+                return;
+              }
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+            throw new Error("Dispatch was accepted but not observed; check Actions before recovery.");
