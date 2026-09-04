@@ -44,7 +44,6 @@ See [Quick Start](quick-start.md) for a complete example and [Configuration Refe
 
 ```dotenv
 ONEPASSWORD_EXECUTION_MODE=local
-OP_SERVICE_ACCOUNT_TOKEN=ops_...
 ```
 
-Local mode reads a Catalog containing `secret_references` and creates the Backend and Provider executor inside the NoneBot process. It is never enabled automatically when the Broker fails; an administrator must select it explicitly.
+Inject `OP_SERVICE_ACCOUNT_TOKEN` through the process environment rather than storing it in a configuration file. Import trusted Provider registration modules before NoneBot startup. Local mode reads a Catalog containing `secret_references` and creates the Backend and Provider executor inside the NoneBot process. It is never enabled automatically when the Broker fails; an administrator must select it explicitly.

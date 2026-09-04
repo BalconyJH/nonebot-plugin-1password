@@ -13,7 +13,7 @@ Install the distribution:
 uv add nonebot-plugin-1password
 ```
 
-Load the plugin:
+Load the plugin from your initialized NoneBot application's entry point:
 
 ```python
 import nonebot
@@ -28,11 +28,10 @@ Deploying NoneBot and the Broker as separate processes or containers is recommen
 - NoneBot: public Catalog, Policy, approval routes, and client certificate; no OP Token.
 - Broker: private Catalog, Policy, Provider modules, server certificate, client CA and fingerprint allowlist, WAL database, and audit file; owns the OP Token.
 
-Start the Broker:
+Start the Broker after the deployment platform injects `OP_SERVICE_ACCOUNT_TOKEN` into its environment:
 
 ```bash
-OP_SERVICE_ACCOUNT_TOKEN='ops_...' \
-  uv run python -m nonebot_plugin_1password.broker --config /etc/nb1p/broker.toml
+uv run python3 -m nonebot_plugin_1password.broker --config /etc/nb1p/broker.toml
 ```
 
 Never place the Token in NoneBot configuration, Broker TOML, `.env`, image layers, command-line arguments, databases, or logs.

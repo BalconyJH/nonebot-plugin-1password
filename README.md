@@ -33,6 +33,8 @@ See [SECURITY.md](SECURITY.md) for the complete security invariants.
 uv add nonebot-plugin-1password
 ```
 
+Load the plugin from your initialized NoneBot application's entry point:
+
 ```python
 import nonebot
 
@@ -47,14 +49,15 @@ Production deployments also require:
 
 The NoneBot request store also needs ORM migrations and validated SQLite connection settings. Its connection initializer is not currently wired into the startup lifecycle; see [Database readiness](docs/getting-started/installation.md#database-readiness) before enabling the workflow.
 
-Start the standalone Broker:
+Start the standalone Broker after your process supervisor injects the token into its environment:
 
 ```bash
-OP_SERVICE_ACCOUNT_TOKEN='ops_...' \
-  uv run python3 -m nonebot_plugin_1password.broker --config /etc/nb1p/broker.toml
+uv run python3 -m nonebot_plugin_1password.broker --config /etc/nb1p/broker.toml
 ```
 
 NoneBot does not read this environment variable in the default `broker` mode. The `local` mode is intended only for controlled development or single-process deployments; in that mode, the NoneBot process reads the token.
+
+No Action Providers are bundled. Install trusted deployment-owned Providers on the Broker and start it before NoneBot. See the [Quick Start](docs/getting-started/quick-start.md) for matching documents, certificate prerequisites, explicit paths, and permission grants.
 
 ## Commands
 
