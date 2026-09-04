@@ -1,0 +1,43 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      source-sha:
+        description: Verified release commit to check.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Docs Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source-sha || github.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-project
+        with:
+          enable-cache: ${{ inputs.source-sha == '' }}
+      - name: Build documentation strictly
+        run: make docs
+      - name: Retain documentation preview
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: docs-site-${{ github.run_id }}
+          path: site/
+          if-no-files-found: error
+          retention-days: 7

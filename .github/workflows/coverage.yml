@@ -1,0 +1,71 @@
+name: Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      source-sha:
+        description: Verified release commit to check.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coverage-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  coverage:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    env:
+      PYTEST_ADDOPTS: --junitxml=junit.xml --cov-report=xml:coverage.xml
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source-sha || github.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-project
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: ${{ inputs.source-sha == '' }}
+      - name: Run compatibility suite
+        if: matrix.python-version != '3.13'
+        run: make coverage-report
+      - name: Enforce branch coverage and critical-file thresholds
+        if: matrix.python-version == '3.13'
+        run: make coverage
+      - name: Retain test and coverage evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-python-${{ matrix.python-version }}-${{ github.run_id }}
+          path: |
+            junit.xml
+            coverage.xml
+            coverage.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  result:
+    name: Coverage Matrix
+    if: always()
+    needs: coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Require the complete Python matrix
+        env:
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
+        run: test "$COVERAGE_RESULT" = success

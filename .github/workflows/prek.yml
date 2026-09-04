@@ -1,0 +1,46 @@
+name: Prek
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      source-sha:
+        description: Verified release commit to check.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prek-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  prek:
+    name: Prek
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source-sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-project
+        with:
+          enable-cache: ${{ inputs.source-sha == '' }}
+      - name: Run repository hooks
+        run: make hooks
+      - name: Validate every workflow and local action
+        run: make workflow-lint
+      - name: Test workflow trust boundaries
+        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        with:
+          script: |
+            await exec.exec(process.execPath, ["--test", "scripts/test_workflows.mjs"]);
+      - name: Scan complete Git history
+        run: make secret-scan

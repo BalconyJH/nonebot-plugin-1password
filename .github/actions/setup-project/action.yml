@@ -1,0 +1,22 @@
+name: Set up project
+description: Install pinned uv and Python, then verify and sync the project lockfile.
+inputs:
+  python-version:
+    description: Python version used by project commands.
+    default: "3.13"
+  enable-cache:
+    description: Enable dependency caching for non-publishing checks.
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Install uv and Python
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      with:
+        version: "0.12.9"
+        python-version: ${{ inputs.python-version }}
+        enable-cache: ${{ inputs.enable-cache }}
+        cache-suffix: ${{ github.job }}-${{ inputs.python-version }}-${{ github.event_name }}
+    - name: Sync locked environment
+      shell: bash
+      run: make sync
