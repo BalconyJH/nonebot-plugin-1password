@@ -77,7 +77,7 @@ function fixture() {
   async function run(fn) {
     const original = { ...process.env };
     Object.assign(process.env, {
-      SOURCE_SHA: sha, RELEASE_TAG: "v0.5.0", DOCS_RUN_ID: "123",
+      SOURCE_SHA: sha, RELEASE_TAG: "v0.1.0", DOCS_RUN_ID: "123",
     });
     try {
       await fn(github, context, core);
@@ -143,9 +143,9 @@ test("auto-tag creates a tag and explicitly dispatches publication once", async 
   const f = fixture();
   await f.run(autoTag);
   assert.deepEqual(f.writes.map(item => item.kind), ["tag", "dispatch"]);
-  assert.equal(f.writes[0].ref, "refs/tags/v0.5.0");
+  assert.equal(f.writes[0].ref, "refs/tags/v0.1.0");
   assert.equal(f.writes[0].sha, sha);
-  assert.equal(f.writes[1].ref, "v0.5.0");
+  assert.equal(f.writes[1].ref, "v0.1.0");
   f.state.existing = true;
   await f.run(autoTag);
   assert.equal(f.writes.length, 2);

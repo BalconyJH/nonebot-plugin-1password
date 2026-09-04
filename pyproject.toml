@@ -1,6 +1,6 @@
 [project]
 name = "nonebot-plugin-1password"
-version = "0.5.0"
+version = "0.1.0"
 description = "Typed 1Password access workflow and SecretOps integration for NoneBot2"
 readme = "README.md"
 license = "MIT"

@@ -77,6 +77,7 @@ SDIST_TYPING_FILES = frozenset(
 )
 SDIST_DOCUMENT_FILES = frozenset(
     {
+        "changes/README.md",
         "docs/changelog.md",
         "docs/development/architecture.md",
         "docs/development/documentation.md",

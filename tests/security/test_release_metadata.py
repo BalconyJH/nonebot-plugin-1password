@@ -15,19 +15,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = PROJECT_ROOT / "scripts" / "check_release_metadata.py"
 _VALID_CHANGELOG = """# Changelog
 
-## [0.5.0] - 2026-08-30
+## [0.1.0] - 2026-09-04
 
 ### Features
 
-- Complete the staged roadmap.
+- Initial SecretOps release.
 """
 _VALID_DOCUMENTATION = """# Changelog
 
-## 0.5.0 - 2026-08-30
+## 0.1.0 - 2026-09-04
 
 ### Added
 
-- Complete the staged roadmap.
+- Initial SecretOps release.
 """
 
 
@@ -56,7 +56,7 @@ def test_release_metadata_accepts_one_matching_substantive_release(
     changelog, documentation = _write_documents(tmp_path)
 
     _validator()(
-        version="0.5.0",
+        version="0.1.0",
         changelog=changelog,
         documentation_changelog=documentation,
     )
@@ -65,30 +65,30 @@ def test_release_metadata_accepts_one_matching_substantive_release(
 @pytest.mark.parametrize(
     ("changelog", "documentation"),
     [
-        (_VALID_CHANGELOG.replace("0.5.0", "0.4.0"), _VALID_DOCUMENTATION),
+        (_VALID_CHANGELOG.replace("0.1.0", "0.1.1"), _VALID_DOCUMENTATION),
         (
             _VALID_CHANGELOG,
-            _VALID_DOCUMENTATION.replace("2026-08-30", "2026-08-31"),
+            _VALID_DOCUMENTATION.replace("2026-09-04", "2026-09-05"),
         ),
         (_VALID_CHANGELOG + _VALID_CHANGELOG, _VALID_DOCUMENTATION),
         (
-            _VALID_CHANGELOG.replace("- Complete the staged roadmap.", ""),
+            _VALID_CHANGELOG.replace("- Initial SecretOps release.", ""),
             _VALID_DOCUMENTATION,
         ),
         (
-            _VALID_CHANGELOG.replace("2026-08-30", "2026-02-30"),
-            _VALID_DOCUMENTATION.replace("2026-08-30", "2026-02-30"),
+            _VALID_CHANGELOG.replace("2026-09-04", "2026-02-30"),
+            _VALID_DOCUMENTATION.replace("2026-09-04", "2026-02-30"),
         ),
         (
             _VALID_CHANGELOG.replace(
-                "- Complete the staged roadmap.",
+                "- Initial SecretOps release.",
                 "- <!-- release content pending -->",
             ),
             _VALID_DOCUMENTATION,
         ),
         (
             _VALID_CHANGELOG.replace(
-                "- Complete the staged roadmap.",
+                "- Initial SecretOps release.",
                 "```text\n- example, not a release entry\n```",
             ),
             _VALID_DOCUMENTATION,
@@ -109,7 +109,7 @@ def test_release_metadata_rejects_missing_duplicate_empty_or_mismatched_release(
 
     with pytest.raises(ValueError, match=r"^$"):
         _validator()(
-            version="0.5.0",
+            version="0.1.0",
             changelog=changelog_path,
             documentation_changelog=documentation_path,
         )

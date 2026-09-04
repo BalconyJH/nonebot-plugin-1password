@@ -1,4 +1,4 @@
-"""Public access-request domain language for versions 0.2 and later."""
+"""Public domain language for access requests, policies, and approvals."""
 
 from .enums import (
     ApprovalDecision,

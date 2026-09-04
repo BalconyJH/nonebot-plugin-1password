@@ -1,31 +1,35 @@
-# 发布与 GitHub Actions
+# Releases and GitHub Actions
 
-项目使用 Semantic Versioning、Towncrier、uv 和 hatchling。分发名保持
-`nonebot-plugin-1password`，正式发布只接受与项目版本完全一致的 `vX.Y.Z` 标签。
+The project uses Semantic Versioning, Towncrier, uv, and hatchling. The distribution
+name remains `nonebot-plugin-1password`. Production releases require a `vX.Y.Z` tag
+that exactly matches the project version.
 
-## 检查拓扑
+## Validation Workflows
 
-| Workflow | 职责 | 稳定检查名称 |
+| Workflow | Responsibility | Required check |
 | --- | --- | --- |
-| `ci.yml` | Ruff、BasedPyright、verifytypes、ty、release metadata、构建和分发安全检查 | Required Checks |
-| `coverage.yml` | Python 3.10–3.13 全量测试；3.13 执行总体及关键文件分支覆盖率门禁 | Coverage Matrix |
-| `prek.yml` | 普通 hooks、actionlint、zizmor、完整 Git 历史 Gitleaks 扫描 | Prek |
-| `docs.yml` | Zensical strict build，保留可下载的静态预览产物 | Docs Build |
+| `ci.yml` | Ruff, BasedPyright, verifytypes, ty, release metadata, build and distribution checks | Required Checks |
+| `coverage.yml` | Python 3.10–3.13 tests; overall and critical-file branch coverage on 3.13 | Coverage Matrix |
+| `prek.yml` | Repository hooks, workflow behavior tests, actionlint, zizmor, and full-history Gitleaks | Prek |
+| `docs.yml` | Strict Zensical build and downloadable preview artifact | Docs Build |
 
-检查完成后，`auto-tag.yml` 为版本提升的可信 commit 创建标签并显式触发发布；
-`pages.yml` 使用默认分支的 Docs artifact 部署 GitHub Pages。两者不属于 PR 的
-必需检查，不接收 fork/PR 的发布请求。
+These workflows run on `main` pushes, pull requests, and manual dispatches. Publish
+also calls them with one verified source SHA. Release checks disable dependency
+caching and do not inherit secrets. Aggregate checks use `always()` and fail if an
+upstream check fails, is cancelled, or is unexpectedly skipped. Pull-request
+updates cancel stale checks; each default-branch push retains its own evidence.
 
-四个 workflow 在 `main` push、PR 和手动触发时运行，也接受发布流程传入的确定
-commit SHA。发布检查禁用依赖缓存，不继承 secrets。汇总检查使用 `always()`，
-上游失败、取消或异常跳过都不会被当成成功。PR 更新取消旧检查；默认分支上的
-每个 push 保留自己的检查，便于审计。
+After validation, `auto-tag.yml` can tag a version increase and explicitly dispatch
+Publish. Independently, `pages.yml` deploys the current default branch's Docs
+artifact. Neither workflow is a required PR check or accepts fork/PR publication
+requests.
 
-共享 action `.github/actions/setup-project/action.yml` 固定 uv 版本并执行
-`make sync`。所有外部 action 固定到 commit SHA，Dependabot 每周提交 Actions
-更新。Python 依赖及 uv 二进制版本仍需通过包管理器和正常 review 更新。
+The shared `.github/actions/setup-project/action.yml` pins uv and runs `make sync`.
+External actions are pinned to commit SHAs. Dependabot proposes weekly Actions
+updates; Python dependencies and the uv binary version still require normal
+package-manager updates and review.
 
-## 本地入口
+## Local Commands
 
 ```bash
 make check
@@ -35,25 +39,46 @@ make workflow-test
 make secret-scan
 ```
 
-`make check` 先构建分发，再运行全量覆盖率测试，避免旧 `dist/` 干扰结构检查。
-`make workflow-test` 使用 Node.js 22+ 内置测试器直接验证 workflow 中的脚本，
-不需要 npm 依赖。CI 使用固定 github-script action 自带的 Node 运行同一测试。
-`make workflow-lint` 使用 manual hook stage，扫描全部 workflow 及本地 action，
-不维护容易遗漏新增文件的命令行名单。`make secret-scan` 扫描 Git 历史，
-不是干净 checkout 中的空暂存区；它需要真实 Git 仓库。CI 使用完整历史 checkout。
-Gitleaks 仅对测试中的明确合成标识符和 canary 使用窄范围 allowlist。
+`make check` builds distributions before running coverage so stale `dist/` files
+cannot affect archive inspection. `make coverage-report` collects evidence;
+`make coverage` also enforces the overall and critical-file thresholds.
 
-覆盖率报告、JUnit 报告及 wheel/sdist 保留 14 天；文档预览保留 7 天。
-`make coverage-report` 只生成覆盖率证据；`make coverage` 在此基础上执行门禁。
-`site/`、`dist/` 和报告文件都是忽略的构建产物，不提交回源码分支。
-日志和 artifact 不应包含真实凭据；workflow 不转储进程环境。
+`make workflow-test` uses the Node.js 22+ built-in test runner without npm
+dependencies. CI runs the same tests with the pinned github-script action's Node
+runtime. `make workflow-lint` invokes manual-stage hooks over all workflows and
+local actions rather than maintaining a fixed filename list.
 
-## 正式发布
+`make secret-scan` requires a real Git repository and scans its history, not the
+empty staging area of a clean checkout. CI fetches complete history. Gitleaks
+allows only narrowly scoped synthetic identifiers and test canaries.
 
-1. 审查公共 API、三份 NoneBot TOML schema、Broker 配置与协议，以及迁移说明。
-2. 确认 Secret 隔离、mTLS、reconciliation 和重启测试通过。
-3. 使用 `uv version X.Y.Z` 更新版本并同步 PluginMetadata。
-4. 预览并生成 Towncrier 发布记录，同步文档 changelog：
+Coverage and JUnit reports and wheel/sdist artifacts are retained for 14 days;
+documentation previews are retained for 7 days. Generated `site/`, `dist/`, and
+reports remain ignored and are never committed to the source branch. Workflows
+must not dump process environments or put real credentials in logs or artifacts.
+
+## Production Releases
+
+### Initial Release: 0.1.0
+
+All existing development work belongs to `0.1.0`. Other version numbers in earlier
+commits were unpublished development markers, not previous releases. Preserve
+the granular commit history.
+
+Auto Tag rejects the version decrease used to establish this baseline; its recovery
+entry point does not bypass that protection. For the initial release, complete
+remote setup and all four required checks, then have a maintainer create and push
+`v0.1.0` at the validated commit. The existing Publish tag entry point still checks
+source ancestry, version consistency, tests, and artifacts. Subsequent versions
+follow the normal increasing-version workflow below.
+
+### Subsequent Releases
+
+1. Review the public API, the three NoneBot TOML schemas, Broker configuration and
+   protocol, and migration documentation.
+2. Confirm Secret isolation, mTLS, reconciliation, and restart tests pass.
+3. Run `uv version X.Y.Z` and synchronize PluginMetadata.
+4. Preview and generate Towncrier notes, then synchronize the documentation changelog:
 
    ```bash
    uv run --frozen towncrier build --draft --version X.Y.Z
@@ -61,78 +86,88 @@ Gitleaks 仅对测试中的明确合成标识符和 canary 使用窄范围 allow
    make check
    ```
 
-5. 将版本变更通过 PR 合入默认分支，等待四个必需检查通过。
-6. `Auto Tag` 检查同一 SHA 的四个最新 push 检查均成功，比较第一父提交的项目版本，
-   再创建 `vX.Y.Z` 并触发 `Publish`。没有版本提升时不发布；首个提交不自动打标签。
+5. Merge the version update into the default branch and wait for the four required checks.
+6. Auto Tag verifies the latest successful push run of each workflow for that exact
+   SHA, compares the project version with its first parent, creates `vX.Y.Z`, and
+   dispatches Publish. Unchanged versions and root commits do not produce automatic tags.
 
-自动标签只支持 canonical `X.Y.Z` 版本，不接受降级、预发行或本地版本段。
-已有标签必须指向同一 commit，workflow 从不移动标签。多个完成事件按 SHA 串行，
-已有 Publish run 时不重复触发。由 `GITHUB_TOKEN` 创建的标签不会触发普通 push
-workflow，因此自动流程通过 API 显式 dispatch，不依赖 token 绕过或长期 PAT。
+Only canonical `X.Y.Z` versions are supported by automatic tagging. Downgrades,
+pre-releases, and local version segments are rejected. Existing tags must already
+point to the same commit and are never moved. Completion events are serialized by
+SHA, and an existing Publish run prevents duplicate dispatch. Tags created with
+`GITHUB_TOKEN` do not trigger ordinary push workflows, so publication uses an
+explicit API dispatch rather than a long-lived PAT.
 
-若尚未创建标签或标签创建后 dispatch 中断，从默认分支手动运行 Auto Tag，传入
-当前默认分支完整 `source_sha`。这仍要求四个真实 push 检查通过；缺少证据时先
-补齐对应 push run 或重跑失败检查。已经开始 Publish 的版本使用其恢复入口。
-仅在首次引入项目、没有可比较父提交等场景，由维护者手工创建合规标签。
+For interrupted pre-tag or pre-dispatch work, manually run Auto Tag from the
+default branch with its current full `source_sha`. All four real push checks must
+still pass. Restore missing or failed check evidence before retrying. Once Publish
+has started, use its recovery controls instead.
 
-`publish.yml` 先验证标签格式、版本与默认分支祖先关系，再把解析得到的同一个
-SHA 传给全部可复用检查。CI 构建出的不可变 artifact 是唯一发布输入；
-有 OIDC 权限的发布 job 不 checkout、不运行项目代码、不重新构建包。
-PyPI 发布成功后创建 GitHub Release，并附上同一份 wheel/sdist；已有资产不会被覆盖。
+Publish resolves and verifies the tag, checks default-branch ancestry and the
+project version, and passes the same SHA to every reusable check. The immutable
+artifact produced by CI is the only publication input. The OIDC-enabled publish
+job does not check out code, run project code, or rebuild packages. After PyPI
+publication succeeds, GitHub Release receives the same wheel and sdist without
+overwriting existing assets.
 
-失败恢复优先使用 GitHub 的 **Re-run failed jobs**，保留成功门禁及原始产物。
-若尚未成功上传任何文件，也可从默认分支或匹配标签手动运行 Publish，
-传入已有 `release_tag`。已上传版本不得用重新构建的文件冒充原产物；
-若出现部分上传、artifact 过期或 GitHub Release 已存在，先核对远端状态与摘要，
-再决定恢复措施。workflow 不设置 `skip-existing`，避免把不同内容静默视为成功。
+Prefer **Re-run failed jobs** to preserve successful checks and original artifacts.
+If no files have been published, Publish can also be dispatched from the default
+branch or matching tag with an existing `release_tag`. Do not substitute newly
+built files for an uploaded version. For partial uploads, expired artifacts, or an
+existing GitHub Release, inspect remote state and digests before choosing a
+recovery action. The workflow does not use `skip-existing`.
 
-## TestPyPI 演练
+## TestPyPI Rehearsal
 
-从默认分支手动运行 `Publish (TestPyPI)`。它在隔离 runner 中先执行
-`make check workflow-lint secret-scan`，再通过 `uv version --no-sync` 生成带
-run ID 和 attempt 的唯一 `.dev` 版本，同步锁文件与环境后重新构建和检查产物。
-这些版本变更不会 commit 或推回仓库，也不会发布到正式 PyPI。
+Manually run `Publish (TestPyPI)` from the default branch. A disposable runner first
+runs `make check workflow-lint secret-scan`, then uses `uv version --no-sync` to
+create a unique `.dev` version containing the run ID and attempt. It synchronizes
+the lockfile and environment, rebuilds, and inspects the preview distributions.
+These version changes are not committed, pushed, or published to production PyPI.
 
-## 远端启用清单
+## Remote Setup Checklist
 
-仓库内配置不会自动修改 GitHub 或 PyPI 设置，维护者需完成：
+Repository files do not configure GitHub or PyPI accounts automatically:
 
-1. 确认默认分支为 `main`；若使用其他名称，同步四个检查 workflow 的 push 过滤器，
-   以及 Auto Tag、GitHub Pages 的 workflow-run 分支过滤器。
-2. 在四个稳定检查至少运行一次后，审阅并导入
-   `.github/rulesets/` 中的默认分支及标签 Ruleset。
-   模板要求另一人 review 和最后推送审批，单人维护仓库需先调整协作政策。
-3. 创建 GitHub Environments `pypi`、`testpypi`、`github-pages`，配置审批人及允许的部署 ref。
-   `pypi` 允许正式标签；若需从默认分支手动恢复，也需允许该分支。
-   `testpypi` 只允许默认分支。
-   `github-pages` 也只允许默认分支；审批后会重新核对源 SHA，防止发布过时文档。
-4. 分别在 PyPI 和 TestPyPI 创建 Trusted Publisher，填写实际 owner/repository、
-   workflow 文件名 `publish.yml` / `publish-test.yml`，以及对应 environment 名称。
-5. 保持默认 token 最小权限；发布 job 单独请求 `id-token: write`，
-   GitHub Release job 单独请求 `contents: write`。Auto Tag 的写入 job 请求
-   `contents: write` 和 `actions: write`；确认组织 Actions policy 允许这些权限。
-   不配置长期 PyPI API token，也无需自动标签 PAT。
-6. 在 Settings → Pages 将 Source 设为 **GitHub Actions**，不要选 gh-pages 分支。
-   确认 `zensical.toml` 的 `site_url` 匹配实际 owner/repository 或自定义域名。
-   首次配置后，从默认分支手动运行 Docs 即可生成并自动部署文档。
+1. Confirm the default branch is `main`. If renamed, update the four push filters
+   and the Auto Tag and GitHub Pages workflow-run branch filters.
+2. Observe all four required checks at least once, then review and import the
+   templates in `.github/rulesets/`. They require another reviewer and approval
+   of the latest push; adjust those policies before enabling them in a solo-maintained repository.
+3. Create the `pypi`, `testpypi`, and `github-pages` GitHub environments with
+   reviewers and allowed deployment refs. Allow release tags for `pypi`, plus the
+   default branch if manual recovery will dispatch from it. Restrict `testpypi`
+   and `github-pages` to the default branch. Pages rechecks the source SHA after approval.
+4. Register Trusted Publishers separately in PyPI and TestPyPI using the actual
+   owner/repository, `publish.yml` or `publish-test.yml`, and the matching environment.
+5. Keep default token permissions minimal. Publication requests `id-token: write`;
+   GitHub Release requests `contents: write`; Auto Tag's write job requests
+   `contents: write` and `actions: write`. Ensure organization policy permits
+   these job-level grants. Neither a long-lived PyPI token nor an automatic-tag PAT is needed.
+6. In Settings → Pages, select **GitHub Actions** as the source, not a gh-pages
+   branch. Set `zensical.toml`'s `site_url` to the actual repository URL or custom
+   domain. Once configured, manually run Docs from the default branch to build and deploy.
 
-GitHub Pages 发布默认分支的最新文档，不维护版本目录。PR 仅提供 artifact 预览，
-不会将不受信任的页面发布到正式站点。恢复部署时可从默认分支手动运行 GitHub Pages，
-传入成功 Docs run 的 `docs_run_id`；产物必须未过期且 SHA 仍是默认分支当前 HEAD。
-否则重新运行 Docs，不复用旧站点文件。
+Pages serves the latest default-branch documentation without version directories.
+PRs receive artifact previews only; untrusted pages are not published to the
+production site. To recover deployment, dispatch GitHub Pages from the default
+branch with a successful `docs_run_id`. Its artifact must be unexpired and its SHA
+must still match the default-branch HEAD. Otherwise, run Docs again.
 
-OIDC 和同仓库复用语义分别遵循
-[PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/using-a-publisher/)
-与 [GitHub reusable workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)。
-自动触发限制见 [GitHub workflow triggers](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/trigger-a-workflow)，
-Pages 部署权限见 [actions/deploy-pages](https://github.com/actions/deploy-pages)。
+See [PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/using-a-publisher/),
+[GitHub reusable workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows),
+[workflow trigger restrictions](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/trigger-a-workflow),
+and [Pages deployment permissions](https://github.com/actions/deploy-pages).
 
-## 分发与事故处理
+## Artifacts and Incidents
 
-wheel 只允许包 Python 源码、`py.typed` 和固定 metadata；sdist 只允许明确列出的
-项目文件、文档、workflow、开发脚本、typing stubs、合法 Towncrier fragment
-及包源码。新增基础设施时同步 `tests/security/test_distribution.py` 的精确白名单，
-不能通过放开整个目录来绕过检查。内容检查额外阻止凭据、私钥等敏感内容进入产物。
+The wheel contains only package Python sources, `py.typed`, and fixed metadata.
+The sdist permits only explicitly reviewed project files, documentation,
+workflows, scripts, typing stubs, valid Towncrier fragments, and package sources.
+Update the exact allowlist in `tests/security/test_distribution.py` when adding
+infrastructure; do not replace it with an unrestricted directory allowance.
+Content checks also reject credentials and private keys.
 
-普通回归回滚前先评估 ORM 与 Broker store 兼容性。若 Secret 或签名材料泄露，
-撤回包不能替代 token、证书吊销和事故响应。
+Before rolling back an ordinary regression, evaluate ORM and Broker-store
+compatibility. If Secret or signing material leaks, withdrawing the package does
+not replace token/certificate revocation or incident response.

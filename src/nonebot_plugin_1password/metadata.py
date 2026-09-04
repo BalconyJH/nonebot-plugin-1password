@@ -19,7 +19,7 @@ __plugin_meta__: PluginMetadata = PluginMetadata(
     supported_adapters=inherit_supported_adapters("nonebot_plugin_alconna"),
     extra={
         "author": "BalconyJH",
-        "version": "0.5.0",
+        "version": "0.1.0",
     },
 )
 

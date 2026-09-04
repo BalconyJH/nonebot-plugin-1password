@@ -1,4 +1,4 @@
-"""Secret-safe catalog and health application services for version 0.1."""
+"""Secret-safe catalog, approval, execution, and audit application services."""
 
 from .health_service import HealthService
 from .resource_catalog import ResourceCatalog, ResourceCatalogError
