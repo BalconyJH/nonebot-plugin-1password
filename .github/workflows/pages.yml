@@ -1,0 +1,145 @@
+name: GitHub Pages
+
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] Only a verified successful default-branch Docs run supplies static files; no repository or artifact code executes.
+    workflows: [Docs]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      docs_run_id:
+        description: Successful default-branch Docs run whose artifact should be deployed.
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Validate and package documentation
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_repository.id == github.event.repository.id &&
+       github.event.workflow_run.head_branch == github.event.repository.default_branch &&
+       contains(fromJSON('["push", "workflow_dispatch"]'), github.event.workflow_run.event))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+      ready: ${{ steps.source.outputs.ready }}
+    steps:
+      - name: Verify run, branch, source and artifact
+        id: source
+        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        env:
+          DOCS_RUN_ID: ${{ github.event.workflow_run.id || inputs.docs_run_id }}
+        with:
+          script: |
+            core.setOutput("ready", "false");
+            const raw = process.env.DOCS_RUN_ID;
+            if (!/^[1-9][0-9]*$/.test(raw) || !Number.isSafeInteger(Number(raw))) {
+              throw new Error("docs_run_id must be a positive integer.");
+            }
+            const branch = context.payload.repository.default_branch;
+            if (context.eventName === "workflow_dispatch" && context.ref !== "refs/heads/" + branch) {
+              throw new Error("Dispatch Pages from the default branch.");
+            }
+            const { data: workflow } = await github.rest.actions.getWorkflow({
+              ...context.repo, workflow_id: "docs.yml",
+            });
+            const { data: run } = await github.rest.actions.getWorkflowRun({
+              ...context.repo, run_id: Number(raw),
+            });
+            if (run.workflow_id !== workflow.id || run.conclusion !== "success" ||
+                run.status !== "completed" || !["push", "workflow_dispatch"].includes(run.event) ||
+                run.head_branch !== branch || run.head_repository?.id !== context.payload.repository.id) {
+              throw new Error("Artifact source is not a successful trusted Docs run.");
+            }
+            const { data: head } = await github.rest.repos.getBranch({ ...context.repo, branch });
+            if (head.commit.sha !== run.head_sha) {
+              core.notice("Skipping stale documentation; build Docs at the current default-branch SHA.");
+              return;
+            }
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              ...context.repo, run_id: run.id, per_page: 100,
+            });
+            const matches = artifacts.filter(artifact =>
+              artifact.name === "docs-site-" + run.id && !artifact.expired);
+            if (matches.length !== 1 || matches[0].size_in_bytes > 104857600) {
+              throw new Error("Expected exactly one unexpired documentation artifact below 100 MiB.");
+            }
+            core.setOutput("run-id", String(run.id));
+            core.setOutput("artifact-id", String(matches[0].id));
+            core.setOutput("sha", run.head_sha);
+            core.setOutput("ready", "true");
+      - name: Download exact documentation artifact
+        if: steps.source.outputs.ready == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          artifact-ids: ${{ steps.source.outputs.artifact-id }}
+          run-id: ${{ steps.source.outputs.run-id }}
+          github-token: ${{ github.token }}
+          path: site/
+      - name: Validate static contents
+        if: steps.source.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f site/index.html
+          if find site -mindepth 1 ! -type d ! -type f -print -quit | grep -q .; then
+            echo "::error::Documentation contains a symlink or non-regular entry."
+            exit 1
+          fi
+          files=$(find site -type f | wc -l)
+          kilobytes=$(du -sk site | cut -f1)
+          if (( files > 10000 || kilobytes > 102400 )); then
+            echo "::error::Documentation exceeds the file-count or size limit."
+            exit 1
+          fi
+      - name: Package GitHub Pages artifact
+        if: steps.source.outputs.ready == 'true'
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        with:
+          path: site/
+          retention-days: 7
+
+  deploy:
+    name: Deploy GitHub Pages
+    needs: prepare
+    if: needs.prepare.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Recheck source after any environment approval
+        id: current
+        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ needs.prepare.outputs.sha }}
+        with:
+          script: |
+            const { data: head } = await github.rest.repos.getBranch({
+              ...context.repo, branch: context.payload.repository.default_branch,
+            });
+            core.setOutput("ready", String(head.commit.sha === process.env.SOURCE_SHA));
+            if (head.commit.sha !== process.env.SOURCE_SHA) {
+              core.notice("Source became stale while waiting; deployment skipped.");
+            }
+      - name: Deploy verified documentation
+        id: deployment
+        if: steps.current.outputs.ready == 'true'
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
