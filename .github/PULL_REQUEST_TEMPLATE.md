@@ -1,23 +1,23 @@
-## 背景与方案
+## Context and Approach
 
-<!-- 描述问题、实现边界及关键取舍。关联 issue 时使用 Closes #123。 -->
+<!-- Describe the problem, implementation boundary, and key tradeoffs. Use Closes #123 for related issues. -->
 
-## 兼容性与安全影响
+## Compatibility and Security
 
-<!-- 说明 API、配置、迁移、Broker 协议或 Secret 边界变化；无则写“无”。 -->
+<!-- Describe API, configuration, migration, Broker protocol, or Secret-boundary changes. Write "None" if not applicable. -->
 
-## 验证
+## Validation
 
 - [ ] `make check`
 - [ ] `make hooks`
-- [ ] workflow 变更已运行 `make workflow-lint`，或本项不适用
-- [ ] workflow 变更已运行 `make workflow-test`，或本项不适用
-- [ ] 已补充必要的回归测试、文档及 Towncrier fragment
-- [ ] 已检查文档构建产物，示例不包含真实凭据或生产配置
+- [ ] Workflow changes passed `make workflow-lint`, or this is not applicable
+- [ ] Workflow changes passed `make workflow-test`, or this is not applicable
+- [ ] Necessary regression tests, documentation, and a Towncrier fragment are included
+- [ ] Documentation artifacts were reviewed, and examples contain no real credentials or production configuration
 
-<!-- 列出实际执行结果及未验证项，不要只写“测试通过”。 -->
+<!-- Report commands actually run, their results, and anything left unverified. -->
 
-## 合并前
+## Before Merge
 
-- [ ] PR 标题符合 `type(scope): subject`
-- [ ] 所有必需检查通过，阻塞 review 已解决
+- [ ] The PR title follows `type(scope): subject`
+- [ ] Required checks pass and blocking review feedback is resolved
