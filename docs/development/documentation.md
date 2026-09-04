@@ -3,8 +3,8 @@
 The documentation uses Zensical. Content lives in `docs/`, and configuration lives in `zensical.toml`.
 
 ```bash
-uv run zensical serve
-uv run zensical build --strict
+make docs-serve
+make docs
 ```
 
 ## Content Rules
@@ -16,9 +16,11 @@ uv run zensical build --strict
 - Examples must not contain real tokens, certificates, fingerprints, Secret references, or production URLs. Private Catalog examples use obviously fictitious values only.
 - Public API documentation recommends only `nonebot_plugin_1password.api`. The Broker runtime is an operational embedding surface, not the Provider compatibility API.
 
-After making changes, search for obsolete names and interfaces, run the strict build,
-and manually review the Secret boundary. A successful build proves only link and
-syntax validity; it does not prove that security claims are correct.
+After making changes, search for obsolete names and interfaces, validate configuration
+examples against the current loaders, run the strict build, and manually review the
+Secret boundary. The build checks what the documentation toolchain can validate;
+it does not prove that every link is reachable, that examples work in deployment,
+or that security claims are correct.
 
 ## Changelog
 

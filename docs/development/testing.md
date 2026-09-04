@@ -2,6 +2,8 @@
 
 ## Standard Entry Points
 
+Use Python 3.10–3.13, uv, Make, and Node.js 22 or later. Node runs the dependency-free workflow behavior tests included in `make check`. Run `make prepare` once to synchronize all dependency groups and install the repository hooks, or `make sync` when hooks are not needed.
+
 ```bash
 make test
 make test-unit
@@ -35,4 +37,4 @@ pytest enables strict configuration and markers, importlib mode, and automatic a
 - Broker configuration rejects equality, ancestor or descendant relationships, symlink aliases, and existing hard-link aliases among inputs, the database, SQLite sidecars, and the audit path.
 - A CA-valid client absent from the fingerprint allowlist is rejected, and an incorrect hostname cannot connect.
 
-Network E2E tests listen only on an ephemeral `127.0.0.1` port. Restricted sandboxes must permit local loopback binding; CI and normal development environments require no external network access.
+Network E2E tests listen only on an ephemeral `127.0.0.1` port. Restricted sandboxes must permit local loopback binding. The tests use synthetic credentials and require no real 1Password account or external service; installing dependencies, build tools, or hook environments may still require network access.

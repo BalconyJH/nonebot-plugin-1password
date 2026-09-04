@@ -81,7 +81,7 @@ uv sync --all-groups
 make check
 ```
 
-The project supports Python 3.10–3.13. Quality gates include Ruff, BasedPyright, ty, pytest with per-critical-file branch-coverage thresholds, release-metadata consistency, Zensical, Twine, and distribution structure and Secret scans. See [docs/](docs/index.md) for deployment, schema, Provider API, and operational guidance.
+The project supports Python 3.10–3.13. `make check` also requires Node.js 22 or later for workflow behavior tests. Quality gates include Ruff, BasedPyright, ty, pytest with per-critical-file branch-coverage thresholds, release-metadata consistency, Zensical, Twine, and distribution structure and Secret scans. See [docs/](docs/index.md) for deployment, schema, Provider API, and operational guidance.
 
 ## License
 

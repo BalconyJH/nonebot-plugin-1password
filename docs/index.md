@@ -1,6 +1,6 @@
 # nonebot-plugin-1password
 
-`nonebot-plugin-1password` provides a complete 1Password SecretOps workflow for NoneBot2: a safe Catalog, requests, approvals, fixed Action Providers, and a Remote Broker that isolates Secrets in a separate process.
+`nonebot-plugin-1password` provides a 1Password SecretOps workflow for NoneBot2: a safe Catalog, requests, approvals, fixed Action Providers, and a Remote Broker that isolates Secrets in a separate process.
 
 ## Implemented capabilities
 
