@@ -4,6 +4,8 @@ Configuration is split between the NoneBot side and the standalone Broker. Secre
 
 ## NoneBot configuration
 
+The request store also depends on ORM's database configuration and connection settings, which are not `OnePasswordConfig` fields. See [Database readiness](installation.md#database-readiness) before enabling the workflow.
+
 The default is `onepassword_execution_mode = "broker"`. The three TLS paths must either all be present or all be omitted. When they are omitted, the safe catalog can still load, but the execution boundary reports `broker_unavailable` and the workflow is not installed.
 
 | Setting | Default | Meaning |

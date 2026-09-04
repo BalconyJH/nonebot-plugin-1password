@@ -37,6 +37,25 @@ OP_SERVICE_ACCOUNT_TOKEN='ops_...' \
 
 Never place the Token in NoneBot configuration, Broker TOML, `.env`, image layers, command-line arguments, databases, or logs.
 
+## Database readiness
+
+The NoneBot request store supports SQLite only, even though ORM itself supports other databases. Its model bind is `nonebot_plugin_1password`; an unconfigured bind uses ORM's default database. Keep this database separate from the Broker database and persist both across process restarts.
+
+The request store requires SQLite 3.24 or later, `foreign_keys = ON`, `busy_timeout = 5000`, and WAL mode for a persistent file. Foreign keys and busy timeout are connection-local settings, so setting them once in a separate SQLite session is insufficient.
+
+!!! warning "Current startup integration gap"
+
+    The NoneBot lifecycle validates these settings when opening a transaction but does not install the existing SQLite connection initializer on the ORM engine. A default ORM SQLite connection therefore does not meet the request-store requirements. Migration alone does not fix this. Do not consider the workflow ready until the engine initialization is wired and verified; do not bypass the validation. The standalone Broker initializes its own SQLite store and is not affected by this gap.
+
+After configuring the model bind and loading the plugin, apply migrations from your bot project before starting unattended workers. With NB-CLI installed in that environment, use the [ORM migration commands](https://nonebot.dev/docs/best-practice/database/user):
+
+```bash
+uv run nb orm upgrade
+uv run nb orm check
+```
+
+`upgrade` without a revision upgrades all loaded plugin branches. This plugin registers the `nonebot_plugin_1password` branch with revision `nb1p_0001`. Keep `ALEMBIC_STARTUP_CHECK=true`; it checks schema readiness, not the connection settings above. Back up an existing database consistently before migration, and inspect schema compatibility before downgrading a package. The Broker's schema is managed by its own store, not by these ORM commands.
+
 ## Source development
 
 ```bash

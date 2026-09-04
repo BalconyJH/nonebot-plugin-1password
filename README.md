@@ -45,6 +45,8 @@ Production deployments also require:
 2. A private `catalog.toml`, matching Policy version, mTLS certificates, client-fingerprint allowlist, SQLite path, and audit outlet for the Broker.
 3. An `OP_SERVICE_ACCOUNT_TOKEN` injected only into the Broker process.
 
+The NoneBot request store also needs ORM migrations and validated SQLite connection settings. Its connection initializer is not currently wired into the startup lifecycle; see [Database readiness](docs/getting-started/installation.md#database-readiness) before enabling the workflow.
+
 Start the standalone Broker:
 
 ```bash

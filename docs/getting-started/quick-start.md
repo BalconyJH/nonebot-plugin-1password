@@ -2,6 +2,8 @@
 
 The following example uses the default Remote Broker mode to define a fixed Action that is allowed directly. Production policies should normally use `require_approval` instead.
 
+Before using the workflow, complete [Database readiness](installation.md#database-readiness), including the current NoneBot SQLite initialization limitation. The configuration below does not resolve that runtime integration gap.
+
 ## 1. Public Catalog
 
 NoneBot's `catalog.toml` contains metadata only and must not include `secret_references`:

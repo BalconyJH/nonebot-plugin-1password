@@ -4,6 +4,8 @@
 
 ### NoneBot
 
+The [ORM schema and connection prerequisites](../getting-started/installation.md#database-readiness) must be satisfied before workers can run. The current lifecycle does not install the SQLite connection initializer automatically.
+
 1. Require Alconna, LocalStore, ORM, Permission, Uninfo, and Waiter; then register the commands and ORM migration.
 2. Load the public or private Catalog, depending on mode, in parallel with the Action Policy and Approval Route.
 3. In `local` mode, create the local Backend, bindings, and executor. In `broker` mode, create the TLS client, look up the grant for each executable Policy, and check Broker health.
