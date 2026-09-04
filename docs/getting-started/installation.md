@@ -42,9 +42,11 @@ The NoneBot request store supports SQLite only, even though ORM itself supports 
 
 The request store requires SQLite 3.24 or later, `foreign_keys = ON`, `busy_timeout = 5000`, and WAL mode for a persistent file. Foreign keys and busy timeout are connection-local settings, so setting them once in a separate SQLite session is insufficient.
 
-!!! warning "Current startup integration gap"
+### Current startup integration gap
 
-    The NoneBot lifecycle validates these settings when opening a transaction but does not install the existing SQLite connection initializer on the ORM engine. A default ORM SQLite connection therefore does not meet the request-store requirements. Migration alone does not fix this. Do not consider the workflow ready until the engine initialization is wired and verified; do not bypass the validation. The standalone Broker initializes its own SQLite store and is not affected by this gap.
+The NoneBot lifecycle validates these settings when opening a transaction but does not install the existing SQLite connection initializer on the ORM engine. A default ORM SQLite connection therefore does not meet the request-store requirements. Migration alone does not fix this. Do not consider the workflow ready until the engine initialization is wired and verified; do not bypass the validation. The standalone Broker initializes its own SQLite store and is not affected by this gap.
+
+### Migrations
 
 After configuring the model bind and loading the plugin, apply migrations from your bot project before starting unattended workers. With NB-CLI installed in that environment, use the [ORM migration commands](https://nonebot.dev/docs/best-practice/database/user):
 
