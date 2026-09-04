@@ -62,7 +62,9 @@ must not dump process environments or put real credentials in logs or artifacts.
 1. Review the public API, the three NoneBot TOML schemas, Broker configuration and
    protocol, and migration documentation.
 2. Confirm Secret isolation, mTLS, reconciliation, and restart tests pass.
-3. Run `uv version X.Y.Z` and synchronize PluginMetadata.
+3. Run `uv version X.Y.Z` and update `__plugin_meta__.extra["version"]` in
+   `src/nonebot_plugin_1password/metadata.py` to match. Commit both the manifest
+   and the updated lockfile with the metadata change.
 4. Preview and generate Towncrier notes in the root `CHANGELOG.md`:
 
    ```bash
@@ -90,8 +92,10 @@ explicit API dispatch rather than a long-lived PAT.
 
 For interrupted pre-tag or pre-dispatch work, manually run Auto Tag from the
 default branch with its current full `source_sha`. All four real push checks must
-still pass. Restore missing or failed check evidence before retrying. Once Publish
-has started, use its recovery controls instead.
+still pass. This recovery path permits an unchanged version or a root commit;
+it still rejects a downgrade, an invalid version, or a tag at another SHA.
+Restore missing or failed check evidence before retrying. Once Publish has
+started, use its recovery controls instead.
 
 Publish resolves and verifies the tag, checks default-branch ancestry and the
 project version, and passes the same SHA to every reusable check. The immutable
@@ -135,8 +139,10 @@ Repository files do not configure GitHub or PyPI accounts automatically:
    `contents: write` and `actions: write`. Ensure organization policy permits
    these job-level grants. Neither a long-lived PyPI token nor an automatic-tag PAT is needed.
 6. In Settings → Pages, select **GitHub Actions** as the source, not a gh-pages
-   branch. Set `zensical.toml`'s `site_url` to the actual repository URL or custom
-   domain. Once configured, manually run Docs from the default branch to build and deploy.
+   branch. Set `zensical.toml`'s `site_url` to the published Pages URL, such as
+   `https://<owner>.github.io/<repository>/`, or the custom domain; `repo_url`
+   remains the source repository URL. Once configured, manually run Docs from
+   the default branch to build and deploy.
 
 Pages serves the latest default-branch documentation without version directories.
 PRs receive artifact previews only; untrusted pages are not published to the
