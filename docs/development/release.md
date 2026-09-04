@@ -63,7 +63,7 @@ must not dump process environments or put real credentials in logs or artifacts.
    protocol, and migration documentation.
 2. Confirm Secret isolation, mTLS, reconciliation, and restart tests pass.
 3. Run `uv version X.Y.Z` and synchronize PluginMetadata.
-4. Preview and generate Towncrier notes, then synchronize the documentation changelog:
+4. Preview and generate Towncrier notes in the root `CHANGELOG.md`:
 
    ```bash
    uv run --frozen towncrier build --draft --version X.Y.Z

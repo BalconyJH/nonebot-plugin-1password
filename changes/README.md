@@ -10,6 +10,6 @@ uv run --frozen towncrier create +.feature.md --content 'Describe the user-visib
 ```
 
 At release time, preview and build the notes through the documented release
-workflow, then synchronize `docs/changelog.md`. Remove consumed fragments after
+workflow. The documentation site includes the root changelog directly. Remove consumed fragments after
 their contents have been incorporated into `CHANGELOG.md`. This README is not a
 release fragment and keeps the directory present in fresh checkouts.

@@ -97,8 +97,7 @@ changelog:
 changelog-check:
 	uv run --frozen python3 scripts/check_release_metadata.py \
 		--version $(PROJECT_VERSION) \
-		--changelog CHANGELOG.md \
-		--documentation-changelog docs/changelog.md
+		--changelog CHANGELOG.md
 
 build:
 	uv build --clear

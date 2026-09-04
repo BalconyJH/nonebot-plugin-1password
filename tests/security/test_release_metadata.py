@@ -1,8 +1,10 @@
-"""Release changelog consistency gate tests."""
+"""Release-note validation and single-source documentation contracts."""
 
 from __future__ import annotations
 
 import runpy
+import sys
+from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -21,14 +23,6 @@ _VALID_CHANGELOG = """# Changelog
 
 - Initial SecretOps release.
 """
-_VALID_DOCUMENTATION = """# Changelog
-
-## 0.1.0 - 2026-09-04
-
-### Added
-
-- Initial SecretOps release.
-"""
 
 
 def _validator() -> Callable[..., None]:
@@ -36,80 +30,125 @@ def _validator() -> Callable[..., None]:
     return cast("Callable[..., None]", namespace["validate_release_metadata"])
 
 
-def _write_documents(
-    tmp_path: Path,
-    *,
-    changelog: str = _VALID_CHANGELOG,
-    documentation: str = _VALID_DOCUMENTATION,
-) -> tuple[Path, Path]:
-    changelog_path = tmp_path / "CHANGELOG.md"
-    documentation_path = tmp_path / "docs-changelog.md"
-    changelog_path.write_text(changelog, encoding="utf-8")
-    documentation_path.write_text(documentation, encoding="utf-8")
-    return changelog_path, documentation_path
-
-
-def test_release_metadata_accepts_one_matching_substantive_release(
-    tmp_path: Path,
-) -> None:
-    """Accept synchronized dates and non-empty change entries."""
-    changelog, documentation = _write_documents(tmp_path)
-
-    _validator()(
-        version="0.1.0",
-        changelog=changelog,
-        documentation_changelog=documentation,
+def _snippet_config() -> dict[str, object]:
+    tomllib = import_module("tomllib" if sys.version_info >= (3, 11) else "tomli")
+    configuration = tomllib.loads(
+        (PROJECT_ROOT / "zensical.toml").read_text(encoding="utf-8"),
     )
+    assert configuration["project"]["watch"] == ["CHANGELOG.md"]
+    return cast(
+        "dict[str, object]",
+        configuration["project"]["markdown_extensions"]["pymdownx"]["snippets"],
+    )
+
+
+def _documentation_source() -> str:
+    page = (PROJECT_ROOT / "docs/changelog.md").read_text(encoding="utf-8")
+    assert page == '---\ntitle: Changelog\n---\n\n--8<-- "CHANGELOG.md"\n'
+    return page.split("---\n", 2)[2]
+
+
+def _render(source: str) -> str:
+    markdown = cast("Callable[..., str]", import_module("markdown").markdown)
+    return markdown(
+        source,
+        extensions=["pymdownx.snippets"],
+        extension_configs={"pymdownx.snippets": _snippet_config()},
+    )
+
+
+def _missing_snippet_error() -> type[Exception]:
+    return cast(
+        "type[Exception]",
+        import_module("pymdownx.snippets").SnippetMissingError,
+    )
+
+
+def test_release_metadata_accepts_one_substantive_release(tmp_path: Path) -> None:
+    """Validate the authoritative changelog without a documentation copy."""
+    changelog = tmp_path / "CHANGELOG.md"
+    changelog.write_text(_VALID_CHANGELOG, encoding="utf-8")
+
+    _validator()(version="0.1.0", changelog=changelog)
 
 
 @pytest.mark.parametrize(
-    ("changelog", "documentation"),
+    "content",
     [
-        (_VALID_CHANGELOG.replace("0.1.0", "0.1.1"), _VALID_DOCUMENTATION),
-        (
-            _VALID_CHANGELOG,
-            _VALID_DOCUMENTATION.replace("2026-09-04", "2026-09-05"),
+        _VALID_CHANGELOG.replace("0.1.0", "0.1.1"),
+        _VALID_CHANGELOG.replace(" - 2026-09-04", ""),
+        _VALID_CHANGELOG + _VALID_CHANGELOG,
+        _VALID_CHANGELOG.replace("- Initial SecretOps release.", ""),
+        _VALID_CHANGELOG.replace("2026-09-04", "2026-02-30"),
+        _VALID_CHANGELOG.replace(
+            "- Initial SecretOps release.",
+            "- <!-- release content pending -->",
         ),
-        (_VALID_CHANGELOG + _VALID_CHANGELOG, _VALID_DOCUMENTATION),
-        (
-            _VALID_CHANGELOG.replace("- Initial SecretOps release.", ""),
-            _VALID_DOCUMENTATION,
-        ),
-        (
-            _VALID_CHANGELOG.replace("2026-09-04", "2026-02-30"),
-            _VALID_DOCUMENTATION.replace("2026-09-04", "2026-02-30"),
-        ),
-        (
-            _VALID_CHANGELOG.replace(
-                "- Initial SecretOps release.",
-                "- <!-- release content pending -->",
-            ),
-            _VALID_DOCUMENTATION,
-        ),
-        (
-            _VALID_CHANGELOG.replace(
-                "- Initial SecretOps release.",
-                "```text\n- example, not a release entry\n```",
-            ),
-            _VALID_DOCUMENTATION,
+        _VALID_CHANGELOG.replace(
+            "- Initial SecretOps release.",
+            "```text\n- example, not a release entry\n```",
         ),
     ],
 )
-def test_release_metadata_rejects_missing_duplicate_empty_or_mismatched_release(
+def test_release_metadata_rejects_missing_duplicate_empty_or_malformed_release(
     tmp_path: Path,
-    changelog: str,
-    documentation: str,
+    content: str,
 ) -> None:
-    """Fail when a version cannot be published from synchronized evidence."""
-    changelog_path, documentation_path = _write_documents(
-        tmp_path,
-        changelog=changelog,
-        documentation=documentation,
-    )
+    """Reject incomplete release notes without checking a duplicate file."""
+    changelog = tmp_path / "CHANGELOG.md"
+    changelog.write_text(content, encoding="utf-8")
 
     with pytest.raises(ValueError, match=r"^$"):
-        _validator()(
-            version="0.1.0",
-            changelog=changelog_path,
-            documentation_changelog=documentation_path,
-        )
+        _validator()(version="0.1.0", changelog=changelog)
+
+
+def test_documentation_changelog_only_includes_the_authoritative_file() -> None:
+    """Keep one release-note source and restrict inclusion to that exact file."""
+    assert _documentation_source().strip() == '--8<-- "CHANGELOG.md"'
+    assert _snippet_config() == {
+        "base_path": ["CHANGELOG.md"],
+        "check_paths": True,
+        "restrict_base_path": True,
+        "url_download": False,
+    }
+
+
+def test_documentation_renders_root_changes_without_copying(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Render both the current notes and a later edit through the same include."""
+    changelog = tmp_path / "CHANGELOG.md"
+    changelog.write_text(_VALID_CHANGELOG, encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    source = _documentation_source()
+    assert _render(source) == _render(_VALID_CHANGELOG)
+
+    updated = _VALID_CHANGELOG + "\n## [0.1.1] - 2026-09-05\n\n- Another release.\n"
+    changelog.write_text(updated, encoding="utf-8")
+    assert _render(source) == _render(updated)
+
+
+def test_documentation_fails_if_the_root_changelog_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Do not turn a missing include into an apparently successful empty page."""
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(_missing_snippet_error()):
+        _render(_documentation_source())
+
+
+def test_documentation_snippets_cannot_read_unrelated_files(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Do not grant the Markdown renderer access to the entire repository."""
+    (tmp_path / "CHANGELOG.md").write_text(_VALID_CHANGELOG, encoding="utf-8")
+    (tmp_path / "unrelated.md").write_text("Do not include this.", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(_missing_snippet_error()):
+        _render('--8<-- "unrelated.md"')

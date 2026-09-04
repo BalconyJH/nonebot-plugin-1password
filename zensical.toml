@@ -7,6 +7,7 @@ repo_url = "https://github.com/BalconyJH/nonebot-plugin-1password"
 repo_name = "BalconyJH/nonebot-plugin-1password"
 docs_dir = "docs"
 site_dir = "site"
+watch = ["CHANGELOG.md"]
 strict = true
 nav = [
   { "Home" = "index.md" },
@@ -95,3 +96,9 @@ anchor_linenums = true
 line_spans = "__span"
 pygments_lang_class = true
 [project.markdown_extensions.pymdownx.superfences]
+
+[project.markdown_extensions.pymdownx.snippets]
+base_path = ["CHANGELOG.md"]
+check_paths = true
+restrict_base_path = true
+url_download = false

@@ -20,6 +20,13 @@ After making changes, search for obsolete names and interfaces, run the strict b
 and manually review the Secret boundary. A successful build proves only link and
 syntax validity; it does not prove that security claims are correct.
 
+## Changelog
+
+Edit only the root `CHANGELOG.md`. The documentation page includes it through
+`pymdownx.snippets` at build time. The extension can read only that file and fails
+the build if it is missing; no separate release-note copy needs synchronization.
+The root file is also watched so edits invalidate incremental builds and previews.
+
 ## GitHub Actions Previews
 
 Docs runs `make docs` for pull requests and the default branch and retains the
