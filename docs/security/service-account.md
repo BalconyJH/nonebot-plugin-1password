@@ -2,21 +2,22 @@
 
 ## Ownership
 
-In the default production mode, only the Broker process holds `OP_SERVICE_ACCOUNT_TOKEN`. Create a separate, least-privilege Service Account for each security boundary and allow access only to Vaults and Items actually referenced by the private Catalog. Do not reuse a personal account, administrator Token, or another automation account.
+In the default Broker mode, only the Broker process holds `OP_SERVICE_ACCOUNT_TOKEN`. Create a separate, least-privilege Service Account for each security boundary. Service Account permissions are granted per Vault, not per Catalog Item; use dedicated Vaults containing only the credentials this deployment needs. The private Catalog narrows normal resolution but does not narrow what a stolen Token can read. See [1Password Service Account permissions](https://www.1password.dev/service-accounts/get-started).
 
-Inject the Token through the deployment platform's runtime Secret mechanism:
+The built-in Backend only resolves Secrets, so grant read access to the required Vaults without write, share, or Vault-creation privileges. A Provider's downstream permission requirements are separate. Do not reuse a personal account, administrator Token, or another automation account.
+
+Inject the Token through the deployment platform's runtime Secret mechanism before launching the Broker:
 
 ```bash
-OP_SERVICE_ACCOUNT_TOKEN='ops_...' \
-  uv run python3 -m nonebot_plugin_1password.broker --config /etc/nb1p/broker.toml
+uv run python3 -m nonebot_plugin_1password.broker --config /etc/nb1p/broker.toml
 ```
 
-Do not place the value in Broker TOML, NoneBot configuration, `.env`, images, process arguments, databases, logs, or tickets.
+Do not place the value in Broker TOML, NoneBot configuration, `.env`, images, process arguments, shell history, databases, logs, or tickets.
 
 ## Routine rotation
 
 1. Stop accepting new Broker requests, then reconcile running and queued executions with external-system state.
-2. Create a new Token whose permissions do not exceed the current private Catalog.
+2. Create a replacement Service Account with no broader Vault access or permissions than the deployment requires.
 3. Replace the Broker runtime value in the Secret management platform.
 4. Restart the Broker, then use an authorized mTLS client to check health and a fixed, side-effect-free test capability.
 5. Revoke the old Token and confirm that it can no longer authenticate.
