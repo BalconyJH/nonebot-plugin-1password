@@ -24,7 +24,7 @@ When `/op reject` is submitted without a reason, Waiter collects one rejection r
 
 ## Presentation boundary
 
-Public scenes display only the request ID and status. Private conversations may additionally show the safe resource alias, action, quorum, and current approval count. Buttons and platform components are not correctness requirements: every adapter shares the text commands, and every interaction entry point must ultimately revalidate the principal and current state.
+Approval responses in public scenes display only the request ID and status. Private approval responses additionally show whether the vote was newly recorded and the current approval count; private request responses show the resource alias, action, and required quorum. Buttons and platform components are not correctness requirements: every adapter shares the text commands, and every interaction entry point must ultimately revalidate the principal and current state.
 
 An approval notification persists two closed actions, `approve` and `reject`; the random request ID is their only dynamic coordinate. When the active UniMessage exporter supports `Keyboard`, the notification includes input buttons. Otherwise it falls back to a text-only notification before sending any content. A button only fills in the same `/op approve|reject <request-id>` text command. Submission still passes through Alconna, Uninfo, Permission, the domain Policy, the self-approval restriction, and current-state validation.
 

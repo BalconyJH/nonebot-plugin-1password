@@ -67,7 +67,7 @@ NoneBot does not read this environment variable in the default `broker` mode. Th
 /op reject <request-id> [--reason <reason>]
 ```
 
-Waiter collects a missing request reason, confirmation, or rejection reason; prompts never ask users to paste a Secret. Public scenes show only the request ID and status. Safe aliases, actions, and quorum details appear only in private messages.
+Examples use `/` as the NoneBot `COMMAND_START` prefix. Waiter collects a missing request reason, confirmation, or rejection reason; prompts never ask users to paste a Secret. Request and approval responses in public scenes show only the request ID and status. Private workflow responses may include safe aliases, actions, or vote details. Search and show return visible Catalog metadata in the invoking scene, including group chats; scope their command permissions accordingly.
 
 ## Development and Verification
 

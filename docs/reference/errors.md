@@ -1,6 +1,6 @@
 # Error Reference
 
-The chat layer maps expected failures to fixed, short user-facing messages. It never echoes exceptions, inputs, paths, or internal codes. Callers should reread state instead of repeating an operation that may have side effects.
+The chat layer maps expected command failures to fixed, short user-facing messages. It never echoes exception text, arbitrary inputs, or paths. `/op health` is the exception to hiding internal categories: it includes a bounded Backend unavailability code. Callers should reread state instead of repeating an operation that may have side effects.
 
 ## Workflow categories
 

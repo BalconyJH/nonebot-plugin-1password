@@ -1,6 +1,6 @@
 # Command Reference
 
-The command root defaults to `/op`, with `/1p` and `/1password` as aliases. A single Alconna grammar registers every command. Parse failures use a fixed message and never echo arbitrary input.
+The command name defaults to `op`, with `1p` and `1password` as aliases. The prefix comes from NoneBot's `COMMAND_START`; all examples assume it includes `/`. A single Alconna grammar registers every command. Parse failures use a fixed message and never echo arbitrary input.
 
 | Command | Permission | Behavior |
 | --- | --- | --- |
@@ -16,3 +16,5 @@ The command root defaults to `/op`, with `/1p` and `/1password` as aliases. A si
 `status` may be `pending`, `approved`, `executing`, `succeeded`, `failed`, `rejected`, `cancelled`, or `expired`.
 
 Request and approval output in public scenes contains only public IDs and status. Private conversations may also show safe aliases, Actions, and vote counts. The table above is the complete command set. Workers execute approved requests; audit and configuration changes remain operational responsibilities.
+
+Search and show return visible Catalog metadata in the invoking scene, even when it is public. Visibility is checked for the caller, not every reader of a group chat. Health returns fixed Backend and Catalog states, including a bounded unavailable code. Restrict these command permissions and keep Catalog metadata suitable for its intended audience.
