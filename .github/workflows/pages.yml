@@ -38,7 +38,7 @@ jobs:
     steps:
       - name: Verify run, branch, source and artifact
         id: source
-        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           DOCS_RUN_ID: ${{ github.event.workflow_run.id || inputs.docs_run_id }}
         with:
@@ -106,7 +106,7 @@ jobs:
           fi
       - name: Package GitHub Pages artifact
         if: steps.source.outputs.ready == 'true'
-        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: site/
           retention-days: 7
@@ -127,7 +127,7 @@ jobs:
     steps:
       - name: Recheck source after any environment approval
         id: current
-        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           SOURCE_SHA: ${{ needs.prepare.outputs.sha }}
         with:
@@ -142,4 +142,4 @@ jobs:
       - name: Deploy verified documentation
         id: deployment
         if: steps.current.outputs.ready == 'true'
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
