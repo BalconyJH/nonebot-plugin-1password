@@ -37,7 +37,7 @@ jobs:
     steps:
       - name: Require every trusted push check
         id: gate
-        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           SOURCE_SHA: ${{ github.event.workflow_run.head_sha || inputs.source_sha }}
         with:
@@ -137,7 +137,7 @@ jobs:
           PY
       - name: Create or verify tag and dispatch once
         if: steps.version.outputs.tag != ''
-        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
           SOURCE_SHA: ${{ needs.gate.outputs.sha }}
